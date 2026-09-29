@@ -1,0 +1,13 @@
+{
+  "name": "tn-newsletter",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Generate the TaiyangNews daily newsletter HTML from the nl-collection RSS feed",
+  "scripts": {
+    "start": "node server.js",
+    "convert": "node cli.js"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
