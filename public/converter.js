@@ -48,12 +48,36 @@
       .replace(/"/g, '&quot;');
   }
 
+  // Emoji can't be shown reliably in email, and the feed sometimes carries an
+  // emoji that was already lost upstream as "?" + an invisible variation selector
+  // (e.g. "Conference - Online ?️"). Both are removed. When something was
+  // removed, the spaced " - " separator left behind is dropped too, so that
+  // title becomes "Conference Online". (C) (R) TM are kept.
+  const LOST_EMOJI = /\?[︎️‍⃣]+|�/g;
+  const EMOJI = /(?![©®™])\p{Extended_Pictographic}(?:[︎️‍⃣]|\p{Emoji_Modifier}|\p{Extended_Pictographic})*/gu;
+  const INVISIBLE = /[︎️​-‍⁠⃣]/g;
+
+  function cleanText(s) {
+    let removed = false;
+    const hit = () => ((removed = true), ' ');
+    s = String(s || '').replace(LOST_EMOJI, hit).replace(EMOJI, hit).replace(INVISIBLE, '');
+    if (removed) s = s.replace(/\s+[-–—]\s+/g, ' ').replace(/\s+[-–—:|]\s*$/, '');
+    return s.replace(/[ \t]{2,}/g, ' ').replace(/ +([,.;:!?])/g, '$1').trim();
+  }
+
+  // Every non-ASCII character as a numeric entity (’ -> &#8217;) so no email
+  // tool can turn it into "?" because of a charset mismatch.
+  function asciiSafe(html) {
+    return String(html).replace(/[^\x00-\x7F]/gu, (ch) => '&#' + ch.codePointAt(0) + ';');
+  }
+
   // Tag markup -> plain text with collapsed whitespace.
   function textOf(html) {
-    return decodeEntities(String(html || '').replace(/<[^>]*>/g, ' '))
-      .replace(/\s+/g, ' ')
-      .replace(/\s+([,.;])/g, '$1')
-      .trim();
+    return cleanText(
+      decodeEntities(String(html || '').replace(/<[^>]*>/g, ' '))
+        .replace(/\s+/g, ' ')
+        .replace(/\s+([,.;])/g, '$1')
+    );
   }
 
   function withPeriod(s) {
@@ -287,11 +311,23 @@
     const reads = normaliseExternalReads(opts.externalReadsHtml);
     const T = root.TNTemplate || require('./template');
 
-    const html = T.page({
-      dateLabel,
-      summary: summaryHtml(opts.summary),
-      body: renderHeadlines(feed.items) + groups.map(renderSection).join('') + renderExternalReads(reads),
-    });
+    // "What We Read From Others" sits after the news sections and before the
+    // image sections (Reports, Our Events, Top Modules, Price Index), as in the
+    // original newsletter layout.
+    const newsGroups = groups.filter((g) => g.layout === 'news');
+    const imageGroups = groups.filter((g) => g.layout !== 'news');
+
+    const html = asciiSafe(
+      T.page({
+        dateLabel,
+        summary: summaryHtml(cleanText(opts.summary)),
+        body:
+          renderHeadlines(feed.items) +
+          newsGroups.map(renderSection).join('') +
+          renderExternalReads(reads) +
+          imageGroups.map(renderSection).join(''),
+      })
+    );
     return {
       html,
       stats: {
@@ -303,7 +339,7 @@
     };
   }
 
-  const api = { buildNewsletter, parseRss, describe, normaliseExternalReads, formatDate, LAYOUTS };
+  const api = { buildNewsletter, parseRss, describe, normaliseExternalReads, formatDate, cleanText, asciiSafe, LAYOUTS };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else root.TNConverter = api;
 })(typeof window !== 'undefined' ? window : globalThis);

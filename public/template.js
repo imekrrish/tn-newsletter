@@ -24,7 +24,7 @@ body{font-family: "Muli", -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto
 .list-item li a {text-decoration: none;}
 .list-item li h2, .list-item li a h2 {font-weight: 400;color: #003365;text-decoration: none;font-size: 17px;display: contents;}
 .list-item3 li a h2, .list-item4 li a h2{display:block;margin-top:10px !important;}
-.list-item li a h2::before {content: "►";color: #003365;margin-right: 10px;text-decoration: none;}
+.list-item li a h2::before {content: "\\25BA";color: #003365;margin-right: 10px;text-decoration: none;}
 .list-item2 li {margin-bottom: 10px !important;}
 .items .item {display: flex;text-decoration: none;margin-bottom: 40px;}
 .items .item .image {border-radius: 5px;width: 103px;height: 55px;}
